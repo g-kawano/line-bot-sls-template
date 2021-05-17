@@ -1,0 +1,126 @@
+service: line-bot-sls-template
+
+provider:
+  name: aws
+  runtime: python3.8
+  region: ap-northeast-1
+  stage: ${opt:stage, self:custom.defaultStage}
+  timeout: 60
+  environment:
+    LINE_CHANNEL_SECRET: XXXXXXXXXX
+    LINE_CHANNEL_ACCESS_TOKEN: XXXXXXXXXX
+
+plugins:
+  - serverless-python-requirements
+custom:
+  defaultStage: dev
+
+package:
+  exclude:
+    - .mypy_cache/**
+    - .venv/**
+    - node_modules/**
+    - .gitignore
+    - package-lock.json
+    - package.json
+    - Pipfile
+    - Pipfile.lock
+
+functions:
+  enqueue:
+    handler: bot_enqueue.lambda_handler
+    description: lineからのwebhookをsqsにキューイングします
+    timeout: 60
+    memorySize: 256
+    role: BotEnqueueRole
+    environment:
+      QUEUE_URL:
+        Ref: BotJobQueue
+    events:
+      - http:
+          path: /
+          method: post
+          response:
+            headers:
+              Content-Type: "'application/json'"
+            template: $input.path('$')
+            # カスタムレスポンスコードの設定
+            statusCodes:
+                200:
+                    pattern: ''
+                    template: $input.path("$.body")
+  execute:
+    handler: bot_execute.lambda_handler
+    description: sqsメッセージを解析して、LINEに返信します（line-bot-sdk-python）
+    timeout: 60
+    memorySize: 256
+    role: BotExecuteRole
+    environment:
+      QUEUE_URL:
+        Ref: BotJobQueue
+    events:
+      - sqs:
+          arn: !GetAtt BotJobQueue.Arn
+          batchSize: 1
+
+resources:
+  Resources:
+    BotJobQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        KmsMasterKeyId: alias/aws/sqs
+        MessageRetentionPeriod: 72000
+        Tags:
+        - Key: AppName
+          Value: ReserveBot
+        VisibilityTimeout: 60
+    BotEnqueueRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        Policies:
+          - PolicyName: enqueuePolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - sqs:SendMessage
+                    - sqs:SendMessageBatch
+                  Resource:
+                    - !GetAtt BotJobQueue.Arn
+    BotExecuteRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        Policies:
+          - PolicyName: executePolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - sqs:ReceiveMessage
+                    - sqs:DeleteMessage
+                    - sqs:DeleteMessageBatch
+                    - sqs:GetQueueAttributes
+                  Resource:
+                    - !GetAtt BotJobQueue.Arn

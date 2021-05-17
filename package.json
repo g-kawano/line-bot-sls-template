@@ -1,0 +1,16 @@
+{
+    "name": "line-bot-sls-template",
+    "version": "1.0.0",
+    "description": "",
+    "dependencies": {
+      "serverless": "^2.31.0"
+    },
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "go-kawano",
+    "license": "ISC",
+    "devDependencies": {
+      "serverless-python-requirements": "^5.1.0"
+    }
+  }
