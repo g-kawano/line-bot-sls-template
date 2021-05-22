@@ -1,7 +1,7 @@
 # line-bot-sls-template
 
 ## 概要
-LINE Bot で使用する messging-api の AWS 実行環境を serverless framework でデプロイできるテンプレート。
+LINE Bot で使用する Messaging API の AWS 実行環境を serverless framework でデプロイできるテンプレート。
 
 ## 環境
 - python 3.8
