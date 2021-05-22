@@ -14,8 +14,6 @@ logger.setLevel(logging.DEBUG)
 # LineBotAPI
 line_bot_api = LineBotApi(channel_access_token)
 handler = WebhookHandler(channel_secret)
-sqs = boto3.client('sqs')
-queue_url = os.getenv('QUEUE_URL')
 
 # Lambda Response
 ok_response = {
