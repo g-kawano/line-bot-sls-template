@@ -38,7 +38,7 @@ def lambda_handler(event, context):
         bot_job_enqueue(sqs, os.getenv('QUEUE_URL'), event)
 
     except Exception as e:
-        logger.info(e)
+        logger.error(e)
         return error_response
 
     return ok_response

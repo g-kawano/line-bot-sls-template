@@ -1,6 +1,5 @@
 import os
 import json
-import boto3
 import logging
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
